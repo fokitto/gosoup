@@ -18,9 +18,9 @@ type Tag struct {
 
 // Render a tree with a current tag as root
 func (tag *Tag) String() string {
-	var buff bytes.Buffer
-	html.Render(&buff, tag.node)
-	return buff.String()
+	var builder strings.Builder
+	html.Render(&builder, tag.node)
+	return builder.String()
 }
 
 // Get a parent tag
@@ -79,7 +79,7 @@ func (tag *Tag) Text() string {
 
 // Get all human-readable text of a current tree
 func (tag *Tag) FullText(sep ...string) string {
-	var buff bytes.Buffer
+	builder := &strings.Builder{}
 
 	var traverse func(*html.Node)
 	traverse = func(node *html.Node) {
@@ -87,9 +87,9 @@ func (tag *Tag) FullText(sep ...string) string {
 			return
 		}
 		if node.Type == html.TextNode {
-			buff.WriteString(node.Data)
+			builder.WriteString(node.Data)
 			for _, s := range sep {
-				buff.WriteString(s)
+				builder.WriteString(s)
 			}
 		}
 		for child := node.FirstChild; child != nil; child = child.NextSibling {
@@ -99,7 +99,7 @@ func (tag *Tag) FullText(sep ...string) string {
 
 	traverse(tag.node)
 
-	return buff.String()
+	return builder.String()
 }
 
 // Removes current tag from a tree

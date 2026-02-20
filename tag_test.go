@@ -352,3 +352,108 @@ func TestUnwrap(t *testing.T) {
 		t.Fatalf("span should not exist after unwrap")
 	}
 }
+
+func TestIterNodes(t *testing.T) {
+    root, err := ParseString(`<div>Text with <a>inner</a> tag</div>`)
+    if err != nil {
+        t.Fatalf("Parse error: %v", err)
+    }
+
+    div := root.Find(HasName("div"))
+	if div == nil {
+		t.Fatalf("could not find div")
+	}
+
+    tagIndex := 0
+    exptectedTexts := []string{"Text with ", "inner", " tag"}
+    for node := range div.IterNodes() {
+        if tagIndex > 2 {
+            t.Fatal("more iterations than expected")
+        }
+        expected := exptectedTexts[tagIndex]
+        switch tagIndex {
+        case 0, 2:
+            n, ok := node.(NavigableString)
+            if !ok {
+                t.Fatalf("node[%d] is not NavigableString", tagIndex)
+            }
+            if n.Text != expected {
+                t.Fatalf("expected '%s', got '%s'", expected, n.Text)
+            }
+        case 1:
+            n, ok := node.(*Tag)
+            if !ok {
+                t.Fatalf("second node is not *Tag")
+            }
+            if n.Text() != expected {
+                t.Fatalf("expected '%s', got '%s'", expected, n.Text())
+            }
+        }
+        tagIndex++
+    }
+}
+
+func TestIterNodesWithOnlyText(t *testing.T) {
+	html := `<p>Just plain text</p>`
+	root, err := ParseString(html)
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	p := root.Find(HasName("p"))
+	if p == nil {
+		t.Fatalf("could not find p")
+	}
+
+	var count int
+	var foundText string
+	for node := range p.IterNodes() {
+		count++
+		str, ok := node.(NavigableString)
+		if !ok {
+			t.Fatalf("expected NavigableString, got %T", node)
+		}
+		foundText = str.Text
+	}
+
+	if count != 1 {
+		t.Fatalf("expected 1 node, got %d", count)
+	}
+	if strings.TrimSpace(foundText) != "Just plain text" {
+		t.Fatalf("expected 'Just plain text', got %q", foundText)
+	}
+}
+
+func TestIterNodesNestedTags(t *testing.T) {
+	html := `<div><span>one</span><em>two</em><strong>three</strong></div>`
+	root, err := ParseString(html)
+	if err != nil {
+		t.Fatalf("Parse error: %v", err)
+	}
+
+	div := root.Find(HasName("div"))
+	if div == nil {
+		t.Fatalf("could not find div")
+	}
+
+	expectedTags := []string{"span", "em", "strong"}
+	tagIndex := 0
+
+	for node := range div.IterNodes() {
+		tag, ok := node.(*Tag)
+		if !ok {
+			t.Fatalf("expected *Tag, got %T", node)
+		}
+		if tagIndex >= len(expectedTags) {
+			t.Fatalf("too many tags: expected %d, got at least %d", len(expectedTags), tagIndex+1)
+		}
+		if tag.Name != expectedTags[tagIndex] {
+			t.Fatalf("expected tag %q at index %d, got %q", expectedTags[tagIndex], tagIndex, tag.Name)
+		}
+		tagIndex++
+	}
+
+	if tagIndex != len(expectedTags) {
+		t.Fatalf("expected %d tags, got %d", len(expectedTags), tagIndex)
+	}
+}

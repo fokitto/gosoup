@@ -64,11 +64,14 @@ func main() {
 - **`ParseBytes(content []byte) (*Tag, error)`** - Parse HTML from a byte slice
 - **`ParseString(content string) (*Tag, error)`** - Parse HTML from a string
 
-### Tag Type
+### Nodes
 
-The `Tag` struct represents an HTML element with the following fields:
-- `Name` - The tag name (e.g., "div", "p", "a")
-- `Attrs` - Map of attributes (key-value pairs)
+GoSoup provides a `Node` interface for working with different types of DOM nodes:
+
+- **`Tag`** - Represents an HTML element with:
+  - `Name` - The tag name (e.g., "div", "p", "a")
+  - `Attrs` - Map of attributes (key-value pairs)
+- **`NavigableString`** - Represents raw text content in the HTML document (similar to BeautifulSoup4's NavigableString)
 
 ### Navigation Methods
 
@@ -77,6 +80,7 @@ The `Tag` struct represents an HTML element with the following fields:
 - **`Children() []*Tag`** - Get all direct child tags
 - **`Prev() *Tag`** - Get the previous sibling element
 - **`Next() *Tag`** - Get the next sibling element
+- **`IterNodes() iter.Seq[Node]`** - Iterate through all child nodes (both tags and text) using range loops
 
 ### Content Methods
 
@@ -93,6 +97,32 @@ The `Tag` struct represents an HTML element with the following fields:
 ### DOM Manipulation
 
 - **`Unwrap() Tag`** - Remove the tag from its parent
+
+### Working with Nodes
+
+The `IterNodes()` method allows you to iterate through all child nodes, including both tags and text content:
+
+```go
+html := `<div>Hello <b>World</b> and <i>Goodbye</i></div>`
+root, _ := gosoup.ParseString(html)
+div := root.Find(gosoup.HasName("div"))
+
+// Iterate through all nodes (text and tags)
+for node := range div.IterNodes() {
+	switch n := node.(type) {
+	case *gosoup.Tag:
+		fmt.Printf("Tag: %s (content: %s)\n", n.Name, n.Text())
+	case gosoup.NavigableString:
+		fmt.Printf("Text: %q\n", n.Text)
+	}
+}
+
+// Output:
+// Text: "Hello "
+// Tag: b (content: World)
+// Text: " and "
+// Tag: i (content: Goodbye)
+```
 
 ## Predicate System
 

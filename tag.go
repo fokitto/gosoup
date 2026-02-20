@@ -4,10 +4,23 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"iter"
 	"strings"
 
 	"golang.org/x/net/html"
 )
+
+// Corresponds to HTML node in the document (tag, raw string, etc.)
+type Node interface {
+	isNode()
+}
+
+// Raw string node in HTML document
+type NavigableString struct {
+	Text string
+}
+
+func (ns NavigableString) isNode() {}
 
 // Corresponds to HTML tag in the document
 type Tag struct {
@@ -15,6 +28,8 @@ type Tag struct {
 	Attrs map[string]string
 	node  *html.Node
 }
+
+func (t *Tag) isNode() {}
 
 // Render a tree with a current tag as root
 func (tag *Tag) String() string {
@@ -33,7 +48,7 @@ func (tag *Tag) FirstChild() *Tag {
 	return newTag(tag.node.FirstChild)
 }
 
-// Get all children tags recursively 
+// Get all children tags recursively
 func (tag *Tag) Children() []*Tag {
 	var children []*Tag
 
@@ -175,6 +190,38 @@ func (tag *Tag) FindParent(predicate Predicate) *Tag {
 	return find(tag.Parent())
 }
 
+// Iterate through all children nodes of current tag,
+// including raw strings
+func (tag *Tag) IterNodes() iter.Seq[Node] {
+	return func(yield func(Node) bool) {
+		var traverse func(*html.Node) bool
+		traverse = func(n *html.Node) bool {
+			for child := n.FirstChild; child != nil; child = child.NextSibling {
+
+				switch child.Type{
+				case html.ElementNode:
+					node := newTag(child)
+					if !yield(node) {
+						return false
+					}
+				case html.TextNode:
+					node := NavigableString{Text: child.Data}
+					if !yield(node) {
+						return false
+					}
+					if !traverse(child) {
+						return false
+					}
+				}
+
+			}
+			return true
+		}
+		
+		traverse(tag.node)
+	}
+}
+
 // Parse HTML document from given reader and return root tag.
 // Since Parse() from the golang.org/x/net/html library is used internally,
 // the rules for basic Parse also apply for this function:
@@ -264,8 +311,19 @@ func newTag(node *html.Node) *Tag {
 // but with the given pointer to the tree-node
 func createDummy(node *html.Node) *Tag {
 	return &Tag{
-		Name: "",
+		Name:  "",
 		Attrs: map[string]string{},
-		node: node,
+		node:  node,
+	}
+}
+
+func newNode(node *html.Node) Node {
+	switch node.Type {
+	case html.ElementNode:
+		return newTag(node)
+	case html.TextNode:
+		return NavigableString{Text: node.Data}
+	default:
+		return nil
 	}
 }

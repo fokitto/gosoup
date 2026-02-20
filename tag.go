@@ -40,12 +40,22 @@ func (tag *Tag) String() string {
 
 // Get a parent tag
 func (tag *Tag) Parent() *Tag {
-	return newTag(tag.node.Parent)
+	for parent := tag.node.Parent; parent != nil; parent = parent.Parent {
+		if parent.Type == html.ElementNode {
+			return newTag(parent)
+		}
+	}
+	return nil
 }
 
 // Get a first child of a tag
 func (tag *Tag) FirstChild() *Tag {
-	return newTag(tag.node.FirstChild)
+	for child := tag.node.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type == html.ElementNode {
+			return newTag(child)
+		}
+	}
+	return nil
 }
 
 // Get all children tags recursively
@@ -299,6 +309,10 @@ func newTag(node *html.Node) *Tag {
 		return nil
 	}
 
+	if node.Type != html.ElementNode {
+		return nil
+	}
+
 	attrs := make(map[string]string, len(node.Attr))
 	for _, attr := range node.Attr {
 		attrs[attr.Key] = attr.Val
@@ -314,16 +328,5 @@ func createDummy(node *html.Node) *Tag {
 		Name:  "",
 		Attrs: map[string]string{},
 		node:  node,
-	}
-}
-
-func newNode(node *html.Node) Node {
-	switch node.Type {
-	case html.ElementNode:
-		return newTag(node)
-	case html.TextNode:
-		return NavigableString{Text: node.Data}
-	default:
-		return nil
 	}
 }

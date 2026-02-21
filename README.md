@@ -34,10 +34,13 @@ func main() {
 	</html>
 	`
 
-	root, err := gosoup.ParseString(html)
+	doc, err := gosoup.ParseString(html)
 	if err != nil {
 		panic(err)
 	}
+
+	// Get the root element
+	root := doc.Root()
 
 	// Find the first h1 tag
 	h1 := root.Find(gosoup.HasName("h1"))
@@ -60,9 +63,15 @@ func main() {
 
 ### Parsing Functions
 
-- **`Parse(reader io.Reader) (*Tag, error)`** - Parse HTML from an `io.Reader`
-- **`ParseBytes(content []byte) (*Tag, error)`** - Parse HTML from a byte slice
-- **`ParseString(content string) (*Tag, error)`** - Parse HTML from a string
+- **`Parse(reader io.Reader) (*Document, error)`** - Parse HTML from an `io.Reader`
+- **`ParseBytes(content []byte) (*Document, error)`** - Parse HTML from a byte slice
+- **`ParseString(content string) (*Document, error)`** - Parse HTML from a string
+
+### Document Type
+
+The `Document` struct represents a parsed HTML document and manages tag caching for efficient access.
+
+- **`Root() *Tag`** - Get the root HTML element of the document
 
 ### Nodes
 
@@ -104,7 +113,8 @@ The `IterNodes()` method allows you to iterate through all child nodes, includin
 
 ```go
 html := `<div>Hello <b>World</b> and <i>Goodbye</i></div>`
-root, _ := gosoup.ParseString(html)
+doc, _ := gosoup.ParseString(html)
+root := doc.Root()
 div := root.Find(gosoup.HasName("div"))
 
 // Iterate through all nodes (text and tags)

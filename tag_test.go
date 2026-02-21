@@ -20,50 +20,14 @@ var sampleHTML = `<!doctype html>
   </body>
 </html>`
 
-func TestParseString(t *testing.T) {
-	root, err := ParseString(sampleHTML)
-	if err != nil {
-		t.Fatalf("ParseString error: %v", err)
-	}
-	if root == nil {
-		t.Fatalf("ParseString returned nil root")
-	}
-	if root.Name != "html" {
-		t.Fatalf("expected root tag to be 'html', got %q", root.Name)
-	}
-}
-
-func TestParseBytes(t *testing.T) {
-	root, err := ParseBytes([]byte(sampleHTML))
-	if err != nil {
-		t.Fatalf("ParseBytes error: %v", err)
-	}
-	if root == nil {
-		t.Fatalf("ParseBytes returned nil root")
-	}
-	if root.Name != "html" {
-		t.Fatalf("expected root tag to be 'html', got %q", root.Name)
-	}
-}
-
-func TestParse(t *testing.T) {
-	root, err := Parse(strings.NewReader(sampleHTML))
-	if err != nil {
-		t.Fatalf("Parse error: %v", err)
-	}
-	if root == nil {
-		t.Fatalf("Parse returned nil root")
-	}
-	if root.Name != "html" {
-		t.Fatalf("expected root tag to be 'html', got %q", root.Name)
-	}
-}
-
 func TestParent(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
+
 	body := root.Find(HasName("body"))
 	if body == nil {
 		t.Fatalf("could not find body")
@@ -79,12 +43,14 @@ func TestParent(t *testing.T) {
 }
 
 func TestFirstChild(t *testing.T) {
-	html, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
 
-	firstChild := html.FirstChild()
+    root := doc.Root()
+
+	firstChild := root.FirstChild()
 	if firstChild == nil {
 		t.Fatalf("FirstChild() returned nil")
 	}
@@ -94,10 +60,12 @@ func TestFirstChild(t *testing.T) {
 }
 
 func TestChildren(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	children := root.Children()
 	if len(children) != 2 {
@@ -112,10 +80,12 @@ func TestChildren(t *testing.T) {
 }
 
 func TestNext(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	head := root.FirstChild()
 	if head == nil {
@@ -132,10 +102,12 @@ func TestNext(t *testing.T) {
 }
 
 func TestPrev(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	body := root.Find(HasName("body"))
 	if body == nil {
@@ -152,10 +124,12 @@ func TestPrev(t *testing.T) {
 }
 
 func TestText(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	p := root.Find(HasClass("a"))
 	if p == nil {
@@ -169,10 +143,12 @@ func TestText(t *testing.T) {
 }
 
 func TestFullText(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	p := root.Find(HasClass("a"))
 	if p == nil {
@@ -187,10 +163,12 @@ func TestFullText(t *testing.T) {
 }
 
 func TestFullTextWithSeparator(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	p := root.Find(HasClass("a"))
 	if p == nil {
@@ -205,10 +183,12 @@ func TestFullTextWithSeparator(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	p := root.Find(AttrEq("class", "a b"))
 	if p == nil {
@@ -222,10 +202,12 @@ func TestString(t *testing.T) {
 }
 
 func TestFind(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	found := root.Find(HasName("span"))
 	if found == nil {
@@ -237,10 +219,12 @@ func TestFind(t *testing.T) {
 }
 
 func TestFindNotFound(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	found := root.Find(HasName("video"))
 	if found != nil {
@@ -249,10 +233,12 @@ func TestFindNotFound(t *testing.T) {
 }
 
 func TestFindByAttribute(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	found := root.Find(AttrEq("id", "root"))
 	if found == nil {
@@ -264,10 +250,12 @@ func TestFindByAttribute(t *testing.T) {
 }
 
 func TestFindAll(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	found := root.FindAll(HasName("p"))
 	if len(found) != 3 {
@@ -281,10 +269,12 @@ func TestFindAll(t *testing.T) {
 }
 
 func TestFindAllWithPredicate(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	found := root.FindAll(HasClass("b"))
 	if len(found) != 2 {
@@ -293,10 +283,12 @@ func TestFindAllWithPredicate(t *testing.T) {
 }
 
 func TestFindParent(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	span := root.Find(HasName("span"))
 	if span == nil {
@@ -313,10 +305,12 @@ func TestFindParent(t *testing.T) {
 }
 
 func TestFindParentNotFound(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	span := root.Find(HasName("span"))
 	if span == nil {
@@ -330,10 +324,12 @@ func TestFindParentNotFound(t *testing.T) {
 }
 
 func TestUnwrap(t *testing.T) {
-	root, err := ParseString(sampleHTML)
+	doc, err := ParseString(sampleHTML)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	span := root.Find(HasName("span"))
 	if span == nil {
@@ -354,10 +350,12 @@ func TestUnwrap(t *testing.T) {
 }
 
 func TestIterNodes(t *testing.T) {
-    root, err := ParseString(`<div>Text with <a>inner</a> tag</div>`)
+    doc, err := ParseString(`<div>Text with <a>inner</a> tag</div>`)
     if err != nil {
         t.Fatalf("Parse error: %v", err)
     }
+
+    root := doc.Root()
 
     div := root.Find(HasName("div"))
 	if div == nil {
@@ -395,10 +393,12 @@ func TestIterNodes(t *testing.T) {
 
 func TestIterNodesWithOnlyText(t *testing.T) {
 	html := `<p>Just plain text</p>`
-	root, err := ParseString(html)
+	doc, err := ParseString(html)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	p := root.Find(HasName("p"))
 	if p == nil {
@@ -426,10 +426,12 @@ func TestIterNodesWithOnlyText(t *testing.T) {
 
 func TestIterNodesNestedTags(t *testing.T) {
 	html := `<div><span>one</span><em>two</em><strong>three</strong></div>`
-	root, err := ParseString(html)
+	doc, err := ParseString(html)
 	if err != nil {
 		t.Fatalf("Parse error: %v", err)
 	}
+
+    root := doc.Root()
 
 	div := root.Find(HasName("div"))
 	if div == nil {

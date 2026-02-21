@@ -1,9 +1,6 @@
 package gosoup
 
 import (
-	"bytes"
-	"errors"
-	"io"
 	"iter"
 	"strings"
 
@@ -27,6 +24,7 @@ type Tag struct {
 	Name  string
 	Attrs map[string]string
 	node  *html.Node
+	doc *Document
 }
 
 func (t *Tag) isNode() {}
@@ -42,7 +40,7 @@ func (tag *Tag) String() string {
 func (tag *Tag) Parent() *Tag {
 	for parent := tag.node.Parent; parent != nil; parent = parent.Parent {
 		if parent.Type == html.ElementNode {
-			return newTag(parent)
+			return tag.doc.newTag(parent)
 		}
 	}
 	return nil
@@ -52,7 +50,7 @@ func (tag *Tag) Parent() *Tag {
 func (tag *Tag) FirstChild() *Tag {
 	for child := tag.node.FirstChild; child != nil; child = child.NextSibling {
 		if child.Type == html.ElementNode {
-			return newTag(child)
+			return tag.doc.newTag(child)
 		}
 	}
 	return nil
@@ -66,7 +64,7 @@ func (tag *Tag) Children() []*Tag {
 		if node.Type != html.ElementNode {
 			continue
 		}
-		children = append(children, newTag(node))
+		children = append(children, tag.doc.newTag(node))
 	}
 
 	return children
@@ -76,7 +74,7 @@ func (tag *Tag) Children() []*Tag {
 func (tag *Tag) Prev() *Tag {
 	for prev := tag.node.PrevSibling; prev != nil; prev = prev.PrevSibling {
 		if prev.Type == html.ElementNode {
-			return newTag(prev)
+			return tag.doc.newTag(prev)
 		}
 	}
 	return nil
@@ -86,7 +84,7 @@ func (tag *Tag) Prev() *Tag {
 func (tag *Tag) Next() *Tag {
 	for next := tag.node.NextSibling; next != nil; next = next.NextSibling {
 		if next.Type == html.ElementNode {
-			return newTag(next)
+			return tag.doc.newTag(next)
 		}
 	}
 	return nil
@@ -134,15 +132,15 @@ func (tag *Tag) Unwrap() {
 
 // Find chidl tag by predicate
 func (tag *Tag) Find(predicate Predicate) *Tag {
-	var find func(*Tag) *Tag
+	var find func(*Tag, bool) *Tag
 
-	find = func(t *Tag) *Tag {
-		if predicate(t) {
+	find = func(t *Tag, skipCheck bool) *Tag {
+		if !skipCheck && predicate(t) {
 			return t
 		}
 
 		for child := t.FirstChild(); child != nil; child = child.Next() {
-			if found := find(child); found != nil {
+			if found := find(child, false); found != nil {
 				return found
 			}
 		}
@@ -150,28 +148,26 @@ func (tag *Tag) Find(predicate Predicate) *Tag {
 		return nil
 	}
 
-	dummy := createDummy(tag.node)
 
-	return find(dummy)
+	return find(tag, true)
 }
 
 // Find all children tags by predicate
 func (tag *Tag) FindAll(predicate Predicate) []*Tag {
 	var result []*Tag
 
-	var find func(*Tag)
-	find = func(t *Tag) {
-		if predicate(t) {
+	var find func(*Tag, bool)
+	find = func(t *Tag, skipCheck bool) {
+		if !skipCheck && predicate(t) {
 			result = append(result, t)
 		}
 
 		for child := t.FirstChild(); child != nil; child = child.Next() {
-			find(child)
+			find(child, false)
 		}
 	}
 
-	dummy := createDummy(tag.node)
-	find(dummy)
+	find(tag, true)
 
 	return result
 }
@@ -210,7 +206,7 @@ func (tag *Tag) IterNodes() iter.Seq[Node] {
 
 				switch child.Type{
 				case html.ElementNode:
-					node := newTag(child)
+					node := tag.doc.newTag(child)
 					if !yield(node) {
 						return false
 					}
@@ -229,104 +225,5 @@ func (tag *Tag) IterNodes() iter.Seq[Node] {
 		}
 		
 		traverse(tag.node)
-	}
-}
-
-// Parse HTML document from given reader and return root tag.
-// Since Parse() from the golang.org/x/net/html library is used internally,
-// the rules for basic Parse also apply for this function:
-//
-// * "Parse will reject HTML that is nested deeper than 512 elements."
-//
-// * "The input is assumed to be UTF-8 encoded."
-func Parse(reader io.Reader) (*Tag, error) {
-	root, err := html.Parse(reader)
-	if err != nil {
-		return nil, err
-	}
-
-	return findRootTag(root)
-}
-
-// Parse given HTML document bytes and return root tag.
-// Since Parse() from the golang.org/x/net/html library is used internally,
-// the rules for basic Parse also apply for this function:
-//
-// * "Parse will reject HTML that is nested deeper than 512 elements."
-//
-// * "The input is assumed to be UTF-8 encoded."
-func ParseBytes(content []byte) (*Tag, error) {
-	root, err := html.Parse(bytes.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-
-	return findRootTag(root)
-}
-
-// Parse given HTML document string and return root tag.
-// Since Parse() from the golang.org/x/net/html library is used internally,
-// the rules for basic Parse also apply for this function:
-//
-// * "Parse will reject HTML that is nested deeper than 512 elements."
-//
-// * "The input is assumed to be UTF-8 encoded."
-func ParseString(content string) (*Tag, error) {
-	root, err := html.Parse(strings.NewReader(content))
-	if err != nil {
-		return nil, err
-	}
-
-	return findRootTag(root)
-}
-
-// Finding root element node (tag) of HTML document
-func findRootTag(root *html.Node) (*Tag, error) {
-	rootElement := findElementNode(root)
-	if rootElement == nil {
-		return nil, errors.New("no element node found")
-	}
-
-	return newTag(rootElement), nil
-}
-
-// Finding first element node from given root
-func findElementNode(node *html.Node) *html.Node {
-	if node.Type == html.ElementNode {
-		return node
-	}
-	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		if found := findElementNode(c); found != nil {
-			return found
-		}
-	}
-	return nil
-}
-
-// Creates new Tag structure from a given node
-func newTag(node *html.Node) *Tag {
-	if node == nil {
-		return nil
-	}
-
-	if node.Type != html.ElementNode {
-		return nil
-	}
-
-	attrs := make(map[string]string, len(node.Attr))
-	for _, attr := range node.Attr {
-		attrs[attr.Key] = attr.Val
-	}
-
-	return &Tag{node.Data, attrs, node}
-}
-
-// Сreates a stub without a name or attributes,
-// but with the given pointer to the tree-node
-func createDummy(node *html.Node) *Tag {
-	return &Tag{
-		Name:  "",
-		Attrs: map[string]string{},
-		node:  node,
 	}
 }

@@ -203,3 +203,80 @@ func TestDocumentNullElements(t *testing.T) {
 		t.Fatalf("expected nil when getting parent of document root")
 	}
 }
+
+func TestChildrenCount(t *testing.T) {
+	html := `
+	<html>
+		<body>
+			<div>
+				<p>Paragraph 1</p>
+				<p>Paragraph 2</p>
+				<span>Span</span>
+			</div>
+		</body>
+	</html>
+	`
+
+	doc, err := ParseString(html)
+	if err != nil {
+		t.Fatalf("ParseString error: %v", err)
+	}
+
+	root := doc.Root()
+	div := root.Find(HasName("div"))
+
+	count := div.ChildrenCount()
+	if count != 3 {
+		t.Fatalf("expected 3 children, got %d", count)
+	}
+
+	p := root.Find(HasName("p"))
+	if p.ChildrenCount() != 0 {
+		t.Fatalf("expected 0 children for paragraph, got %d", p.ChildrenCount())
+	}
+}
+
+func TestDepth(t *testing.T) {
+	html := `
+	<html>
+		<body>
+			<div>
+				<p>
+					<strong>Bold text</strong>
+				</p>
+			</div>
+		</body>
+	</html>
+	`
+
+	doc, err := ParseString(html)
+	if err != nil {
+		t.Fatalf("ParseString error: %v", err)
+	}
+
+	root := doc.Root()
+
+	if root.Depth() != 0 {
+		t.Fatalf("expected root depth to be 0, got %d", root.Depth())
+	}
+
+	body := root.Find(HasName("body"))
+	if body.Depth() != 1 {
+		t.Fatalf("expected body depth to be 1, got %d", body.Depth())
+	}
+
+	div := root.Find(HasName("div"))
+	if div.Depth() != 2 {
+		t.Fatalf("expected div depth to be 2, got %d", div.Depth())
+	}
+
+	p := root.Find(HasName("p"))
+	if p.Depth() != 3 {
+		t.Fatalf("expected p depth to be 3, got %d", p.Depth())
+	}
+
+	strong := root.Find(HasName("strong"))
+	if strong.Depth() != 4 {
+		t.Fatalf("expected strong depth to be 4, got %d", strong.Depth())
+	}
+}

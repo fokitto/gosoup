@@ -70,6 +70,34 @@ func (tag *Tag) Children() []*Tag {
 	return children
 }
 
+// Returns count of all inner tags
+func (tag *Tag) ChildrenCount() int {
+	cnt := 0
+
+	for node := tag.node.FirstChild; node != nil; node = node.NextSibling {
+		if node.Type != html.ElementNode {
+			continue
+		}
+		cnt++
+	}
+
+	return cnt
+}
+
+// Returns depth of current tag
+func (tag *Tag) Depth() int {
+	depth := 0
+
+	for parent := tag.node.Parent; parent != nil; parent = parent.Parent {
+		if parent.Type != html.ElementNode {
+			continue
+		}
+		depth += 1
+	}
+
+	return depth
+}
+
 // Get previous sibling of tag
 func (tag *Tag) Prev() *Tag {
 	for prev := tag.node.PrevSibling; prev != nil; prev = prev.PrevSibling {

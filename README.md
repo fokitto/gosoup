@@ -87,8 +87,10 @@ GoSoup provides a `Node` interface for working with different types of DOM nodes
 - **`Parent() *Tag`** - Get the parent tag
 - **`FirstChild() *Tag`** - Get the first child tag
 - **`Children() []*Tag`** - Get all direct child tags
+- **`ChildrenCount() int`** - Get the count of all direct child tags
 - **`Prev() *Tag`** - Get the previous sibling element
 - **`Next() *Tag`** - Get the next sibling element
+- **`Depth() int`** - Get the depth of the current tag in the document tree
 - **`IterNodes() iter.Seq[Node]`** - Iterate through all child nodes (both tags and text) using range loops
 
 ### Content Methods

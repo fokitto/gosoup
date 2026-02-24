@@ -125,3 +125,9 @@ func (doc *Document) newTag(node *html.Node) *Tag {
 
 	return tag
 }
+
+// Removes given tag from DOM tree and cache
+func (doc *Document) removeTag(tag *Tag) {
+	tag.node.Parent.RemoveChild(tag.node)
+	delete(doc.cache, tag.node)
+}

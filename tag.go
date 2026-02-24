@@ -155,7 +155,7 @@ func (tag *Tag) FullText(sep ...string) string {
 
 // Removes current tag from a tree
 func (tag *Tag) Unwrap() {
-	tag.node.Parent.RemoveChild(tag.node)
+	tag.doc.removeTag(tag)
 }
 
 // Find chidl tag by predicate
